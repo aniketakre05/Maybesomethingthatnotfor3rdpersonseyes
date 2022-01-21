@@ -46,6 +46,29 @@ systemctl disable --now apparmor
 
 !Для проверки конфигураций есть команда - named-checkconf!
 
+# Настройка подключения к ISCSI
+apt install open-iscsi
+vim /etc/iscsi/iscsid.conf
+Раскомментируем строку node.startup = automatic		//Автозапуск соединения с ISCSI
+Комментируем строку node.startup = manual
+Раскомментируем строку node.session.auth.authmethon = CHAP
+Раскомментируем строку и редактируем node.session.auth.username = <Логин ISCSI>
+node.session.auth.password = <Пароль ISCSI>
+:wq!
+systemctl restart iscsi
+Команда для нахождения iqn iscsi:
+iscsiadm -m discovery -t sendtargets -p <ip>
+Команда для коннекта:
+iscsiadm -m node --targetname "<iqn>" --portal "<ip>" --login
+mkfs.ext4 /dev/sdb
+vim /etc/fstab
+Пишем:
+/dev/sdb	/mnt	ext4	defaults	0 0
+:wq!
+mount -a
+
+!На винде не забудь настроить права доступа!
+	
 # Настройка отказоустойчивости с помощью пакета keepalived на SRV-1 и SRV-2
 apt install keepalived
 В конфигурации /etc/keepalived/keepalived.conf
@@ -177,6 +200,38 @@ send host-name = "<Полное доменное имя машины>" //При�
 
 !dhclient -r перезапрашивает IP!
 
+# Настройка ВЕБа на SRV-1 и SRV-2
+apt install nginx
+mkdir /opt/web
+chmod 777 /opt/web -R
+rm -rf /etc/nging/sites-enabled/default		// Удаление конфига по-умолчанию
+vim /etc/nginx/conf.d/site.conf
+Пишем:
+server {
+	listen 0.0.0.0:80;
+	location / {
+		root /opt/web;
+		index index.html;
+	}
+}
+
+nginx -t			 		// Проверяем правильность конфигурации
+vim /opt/web
+Пишем: "Код HTML"
+
+systemctl restart nginx
+
+# Перевод сертификатов под линукс систему
+apt install openssl
+openssl pkcs12 -in <Файл формата pfx> -out <APP.pem> -nodes		// Серверный серт
+cp APP.pem /etc/ssl/certs/
+update-ca-certificated
+openssl x509 -inform DER -in <Файл формата cer> -out <Root.crt>		// Клиентский серт
+cp Root.crt /etc/ssl/certs/
+cp Root.crt /usr/share/ca-certificates
+dpkg-reconfigure ca-certificates 
+И выбираем наш серт
+
 # Настройки haproxy для отказоустойчивости веб-сайта на app.company.msk на машине FW (Frontend и Backend)
 global
 defaults
@@ -196,7 +251,7 @@ backend TransparentBack_http
   server s1 172.20.30.100:80 check weight 3
   server s2 172.20.30.20:80 check weight 1
 
-# Назначение доступа определенным айпи до определнных доменных зон
+# Назначение доступа определенным айпи до определенных доменных зон
 Конфигурация в /etc/bind/named.conf.default-zones переписываем
 acl "internal" { 172.20.0.0/16; };
 acl "external" { any; !172.20.0.0/16; };
