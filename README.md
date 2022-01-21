@@ -1,5 +1,5 @@
 # WS107
-# Настройки haproxy для отказа устойчивости веб-сайта на app.company.msk на машине FW (Frontend и Backend)
+# Настройки haproxy для отказоустойчивости веб-сайта на app.company.msk на машине FW (Frontend и Backend)
 global
 defaults
   mode https
