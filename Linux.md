@@ -1,23 +1,4 @@
 # WS107
-# Настройки haproxy для отказоустойчивости веб-сайта на app.company.msk на машине FW (Frontend и Backend)
-global
-defaults
-  mode https
-  timeout client  5s
-  timeout server  5s
-  timeout connect 5s
-
-frontend MyFronted
-  bind 200.100.200.100:443 ssl crt /etc/ssl/certs/APP.pem //Привязка порта к внешнему IP и указание сертификата безопасности
-  default-backend TransparentBack_http
-  http-request redirect scheme https unless { ssl_fc }
-  
-backend TransparentBack_http
-  balance roundrobin
-  option tcp-check
-  server s1 172.20.30.100:80 check weight 3
-  server s2 172.20.30.20:80 check weight 1
-  
 # Настройка пропуска DNS на FW для внешних клиентов
 iptables -t nat -A PREROUTING -i ens192 -p udp -m udp --dport 53 -j DNAT --to-destination 172.20.30.10
 iptables-save > /etc/iptables/rules.v4
@@ -146,6 +127,42 @@ chmod +x /etc/gre.up
 vim /etc/crontab
 Добавляем строку @reboot root /etc/gre.up
 
+# Настройка OSPF с помощью пакета frr на FW
+apt install frr
+vim /etc/frr/daemons
+Меняем значение ospfd на yes
+systemctl restart frr
+vtysh
+conf t
+router ospf
+ospf router-id 3.3.3.3
+network 172.20.0.0/16 area 0
+network 10.5.5.0/30 area
+do wr
+
+!Проверить, что нет ip ospf network broadcast в конфиге!
+
+# Настройка IPSEC на FW
+apt install strongswan
+vim /etc/ipsec.conf
+Пишем:
+conn gre			// Соединение под название gre
+	left=200.100.200.100 	// Локальный внешний адрес
+	leftprotoport=gre	// Используемый порт протокола GRE у локальной части
+	right=200.100.100.100	// Удаленный внешний адрес
+	rightprotoport=gre	// Используемый порт протокола GRE у удаленной части
+	type=tunnel		// Тип туннеля
+	ike=3des-sha1-modp2048	// Шифровка ключа, modp - группа Диффи - Хеллмана
+	esp=aes128-sha2_256	// Шифровка передаваемых данных
+	authby=secret		// Аутентификация по паролю
+	auto=start		// Соединение в автозагрузке
+:wq!
+vim /etc/ipsec.secrets
+Пишем:
+200.100.200.100 200.100.100.100 : PSK "WSR-2022" // Первый IP - локальный, Второй - удаленный, PSK - Preshared Key, "WSR-2022" - Ключ(пароль)
+:wq!
+ipsec start
+
 # Для добавления линь машин в виндовый родительский домен (DC) 
 apt install realmd adcli sssd
 realm join company.msk --install=/ -U Administrator
@@ -159,6 +176,25 @@ apt install isc-dhcp-client
 send host-name = "<Полное доменное имя машины>" //Пример - CLI-L.company.msk
 
 !dhclient -r перезапрашивает IP!
+
+# Настройки haproxy для отказоустойчивости веб-сайта на app.company.msk на машине FW (Frontend и Backend)
+global
+defaults
+  mode https
+  timeout client  5s
+  timeout server  5s
+  timeout connect 5s
+
+frontend MyFronted
+  bind 200.100.200.100:443 ssl crt /etc/ssl/certs/APP.pem //Привязка порта к внешнему IP и указание сертификата безопасности
+  default-backend TransparentBack_http
+  http-request redirect scheme https unless { ssl_fc }
+  
+backend TransparentBack_http
+  balance roundrobin
+  option tcp-check
+  server s1 172.20.30.100:80 check weight 3
+  server s2 172.20.30.20:80 check weight 1
 
 # Назначение доступа определенным айпи до определнных доменных зон
 Конфигурация в /etc/bind/named.conf.default-zones переписываем
