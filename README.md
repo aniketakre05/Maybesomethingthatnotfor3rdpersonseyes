@@ -6,7 +6,7 @@ defaults
   timeout client  5s
   timeout server  5s
   timeout connect 5s
-  
+
 frontend MyFronted
   bind 200.100.200.100:443 ssl crt /etc/ssl/certs/APP.pem //Привязка порта к внешнему IP и указание сертификата безопасности
   default-backend TransparentBack_http
@@ -74,7 +74,7 @@ global_defs {
 }
 
 vrrp_script dns_check {
-  script "/usr/keepalived/dns_check"
+  script "/usr/keepalived/dns_check" //Место скрипта
   interval 2 //Интервалы отправки пакетов
   timeout 2 //Таймаут на получение пакета
   rise 1 //Требуемое количество принятых пакетов
@@ -90,7 +90,50 @@ vrrp_script ntp_check {
 }
 
 vrrp_instance DNS {
-  state MASTER 
+  state MASTER //Указываем, что эта машина является основной(иначе BACKUP, если является резервной)
+  interface ens192
+  virtual_router_id 53
+  advert_int 1 //Интервал проверки серверов
+  priority 10 //Выше значение - выше приоритет
+  virtual_ipaddress {
+    172.20.30.10/24
+  }
+  track_interface { //Проверка состояния интерфейса
+    ens192
+  }
+  track_script { //Какой скрипт будет использован для проверки
+    dns_check
+  }
+}
+
+vrrp_instance NTP {
+  state MASTER //Указываем, что эта машина является основной(иначе BACKUP, если является резервной)
+  interface ens192
+  virtual_router_id 123
+  advert_int 1 //Интервал проверки серверов
+  priority 10 //Выше значение - выше приоритет
+  virtual_ipaddress {
+    172.20.30.15/24
+  }
+  track_interface { //Проверка состояния интерфейса
+    ens192
+  }
+  track_script { //Какой скрипт будет использован для проверки
+    ntp_check
+  }
+}
+
+Создаем далее скрипт dns_check и ntp_check в заданной нами директории
+mkdir /usr/keepalived
+chmod 777 /usr/keepalived -R
+vim /usr/keepalived/dns_check
+Пишем и сохраняем - systemctl status bind9 > /dev/null 2>&1
+vim /usr/keepalived/ntp_check
+Пишем и сохраняем - systemctl status ntp > /dev/null 2>&1
+systemctl restart keepalived
+
+Проделываем тоже самое и на SRV-2, но значения state меняем с MASTER на BACKUP, значения priority меняем на 9
+
 # Для добавления линь машин в виндовый родительский домен (DC) 
 apt install realmd adcli sssd
 realm join company.msk --install=/ -U Administrator
