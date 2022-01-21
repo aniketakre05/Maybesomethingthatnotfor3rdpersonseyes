@@ -29,4 +29,8 @@ tunnel destination 200.100.200.100			// Адрес внешнего IP FW
 ip address 10.5.5.2 255.255.255.252			// Адрес туннеля CSR
 end
 
-#
+# Настройка OSPF
+conf t
+network 192.168.0.0 255.255.0.0 area 0
+network 10.5.5.0 255.255.255.252 area 0
+end
