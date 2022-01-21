@@ -134,6 +134,18 @@ systemctl restart keepalived
 
 Проделываем тоже самое и на SRV-2, но значения state меняем с MASTER на BACKUP, значения priority меняем на 9
 
+# Настройка GRE туннеля на машише FW
+vim /etc/gre.up
+Вводим - ip tunnel add tun1 mode gre local 200.100.200.100 remote 200.100.100.100 ttl // Создаем туннель
+         ip link set tun1 up // Поднимаем туннель
+         ip addr add 10.5.5.1/30 dev tun1 // Назначаем IP
+chmod +x /etc/gre.up 
+/etc/gre.up
+
+Добавляем в планировщик задач наш скриптик для автозапуска
+vim /etc/crontab
+Добавляем строку @reboot root /etc/gre.up
+
 # Для добавления линь машин в виндовый родительский домен (DC) 
 apt install realmd adcli sssd
 realm join company.msk --install=/ -U Administrator
