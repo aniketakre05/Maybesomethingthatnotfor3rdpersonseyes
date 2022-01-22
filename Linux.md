@@ -8,6 +8,10 @@ zone "msk" {
   file "/etc/bind/db.local";
   forwarders { 200.100.200.100; };
 };
+
+# Донастройка IPTABLES на FW 
+iptables -t nat -A POSTROUTING -s 172.20.0.0/16 -o ens192 -j MASQUERADE
+
 # Настройка дочернего DNS на SRV-1 и SRV-2
 apt install bind9
 Конфигурация в /etc/bind/named.conf.default-zones
