@@ -140,7 +140,7 @@ systemctl restart keepalived
 
 # Настройка GRE туннеля на машише FW
 vim /etc/gre.up
-Вводим - ip tunnel add tun1 mode gre local 200.100.200.100 remote 200.100.100.100 ttl // Создаем туннель
+Вводим - ip tunnel add tun1 mode gre local 200.100.200.100 remote 200.100.100.100 ttl 64 // Создаем туннель
          ip link set tun1 up // Поднимаем туннель
          ip addr add 10.5.5.1/30 dev tun1 // Назначаем IP
 chmod +x /etc/gre.up 
