@@ -1,4 +1,7 @@
 # WS107
+# Если нет НАТа на ISP
+iptables -t nat -A POSTROUTING -s 0.0.0.0/0 -о ens192 -j MASQUERADE
+
 # Настройка пропуска DNS на FW для внешних клиентов
 iptables -t nat -A PREROUTING -i ens192 -p udp -m udp --dport 53 -j DNAT --to-destination 172.20.30.10
 iptables-save > /etc/iptables/rules.v4
