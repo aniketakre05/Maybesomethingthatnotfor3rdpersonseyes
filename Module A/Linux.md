@@ -201,6 +201,16 @@ realm join company.msk --install=/ -U Administrator
 В конфиге /etc/pam.d/common-session дописываем строку
 session optional  pam_mkhomedir.so skel=/etc/skel umask=0077
 
+#DHCP RELAY FW
+apt install isc-dhcp-relay
+
+далее указываем в псевдографике айпи dhcp сервера;
+интерфесы, на которые перенаправляются dhcp запросы;
+на опциях жмем окей
+
+dpkg-reconfigure isc-dhcp-relay - переконфигурация dhcp relay
+
+#Настройка dhcp на клиентах
 apt install isc-dhcp-client
 Чтобы появилась запись линь системы на DC надо вписать или изменить строку в /etc/dhcp/dhclient.conf 
 send host-name = "<Полное доменное имя машины>" //Пример - CLI-L.company.msk
@@ -296,3 +306,4 @@ view "external" {
 };
 
 В конфигурации /etc/bind/named.conf.options убираем forwarders
+
