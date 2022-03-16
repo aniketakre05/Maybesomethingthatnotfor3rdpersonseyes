@@ -307,3 +307,9 @@ view "external" {
 
 В конфигурации /etc/bind/named.conf.options убираем forwarders
 
+# SAMBA
+	
+yum install samba
+mkdir /opt/share
+chmod 777 /opt/share -R
+vim /etc/sama/smb.conf
